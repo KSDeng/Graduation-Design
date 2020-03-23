@@ -1,23 +1,12 @@
 import {MnistData} from './data.js';
 
-const LR = 0.0001;                // learning rate
+const LR = 0.1;                  // learning rate
 const TRAIN_SET_SIZE = 20000;     // training set size
 const TEST_SET_SIZE = 2000;       // testing set size
 const BATCH_SIZE = 512;
 const epochs = 10;
+const model = tf.sequential();
 
-// send ajax requests to server
-function sendRequest(url, data){
-    console.log('Making ajax request to: ', url);
-    $.ajax({
-        url: url,
-        type: 'GET',
-        sendData: data,
-        success: (response) => {
-        console.log('Ajax request response data: ', response);
-        },
-    });
-}
 
 // Visualize some examples
 async function showExamples(data) {
@@ -51,7 +40,6 @@ async function showExamples(data) {
 
 // get training model
 function getModel() {
-    const model = tf.sequential();
 
     const IMAGE_WIDTH = 28;
     const IMAGE_HEIGHT = 28;
@@ -101,9 +89,9 @@ function getModel() {
   
     // Choose an optimizer, loss function and accuracy metric,
     // then compile and return the model
-    // const optimizer = tf.train.sgd(LR);     // use SGD optimizer
+    const optimizer = tf.train.sgd(LR);     // use SGD optimizer
+    // const optimizer = tf.train.adam();
 
-    const optimizer = tf.train.adam();
     model.compile({
         optimizer: optimizer,
         loss: 'categoricalCrossentropy',
@@ -111,6 +99,23 @@ function getModel() {
     });
 
     return model;
+}
+// send ajax requests to server
+async function sendRequest(url, data){
+    console.log('Ajax posting to: ', url);
+
+    // https://stackoverflow.com/questions/45105992/node-js-send-data-to-backend-with-ajax
+    // $.post(url, {data: data});
+    $.ajax({
+        type: 'POST',
+        url: url,
+        data: {
+            data: data
+        },
+        success: (response) => {
+            console.log('Ajax response data: ', response);
+        }
+    });
 }
 
 // call back between each training
@@ -123,8 +128,17 @@ async function onEpochEndCallbacks(epoch, logs) {
     tfvis.show.fitCallbacks(container, metrics);
 
     console.log(`Epoch ${epoch} finished, loss: ${logs.loss}`);
+
     // Send update to center node
-    // TODO
+
+    // https://js.tensorflow.org/api/latest/#tf.Tensor.dataSync
+    const weights = model.layers[0].getWeights()[0];    // Kernel weights tensor
+    const data = weights.dataSync();                    // get data from tensor
+
+    // model.layers[0].getWeights()[0].print();         // print out kernel weights of first layer
+    // const kernel = model.layers[0].getWeights()[0];  // kernel weights of first layer (Tensor)
+    // const bias = model.layers[0].getWeights()[1];    // bias of first layer (Tensor)
+    sendRequest('update', data);
 }
 
 async function train(model, data) {
