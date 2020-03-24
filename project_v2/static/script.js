@@ -107,7 +107,7 @@ function getModel() {
         metrics: ['accuracy'],
     });
 
-    return model;
+    // return model;
 }
 
 
@@ -125,16 +125,45 @@ async function onEpochEndCallbacks(epoch, logs) {
     // Send update to center node
 
     // https://js.tensorflow.org/api/latest/#tf.Tensor.dataSync
-    const weights = model.layers[0].getWeights()[0];    // Kernel weights tensor
-    const data = weights.dataSync();                    // get data from tensor
+    // const weights = model.layers[0].getWeights()[0];    // Kernel weights tensor
+    // const data = weights.dataSync();                    // get data from tensor
 
-    sendMessage(data);
+    sendModelWeights(model);
+    // sendMessage(data);
     // model.layers[0].getWeights()[0].print();         // print out kernel weights of first layer
     // const kernel = model.layers[0].getWeights()[0];  // kernel weights of first layer (Tensor)
     // const bias = model.layers[0].getWeights()[1];    // bias of first layer (Tensor)
     
 }
 
+// send model weights to server
+async function sendModelWeights(model){
+    const layers = model.layers;
+    for(var i = 0; i < layers.length; ++i){
+        const kernel = layers[i].getWeights()[0];
+        const bias = layers[i].getWeights()[1];
+        // console.log(`Kernel: ${kernel}`);
+        // console.log(`Bias: ${bias}`);
+        if(kernel !== undefined && bias !== undefined){
+
+            var weights = {
+                kernel: kernel.arraySync(), 
+                bias: bias.arraySync()
+            };
+            socket.emit('update-model', i, weights);
+        }
+
+        /*
+        if(kernel !== undefined && bias !== undefined){
+            const weights = [kernel, bias];
+            socket.emit('update-model', i, weights);
+        }
+        */
+
+        // socket.emit('update-model', i, 0, layers[i].getWeights()[0]);
+        // socket.emit('update-model', i, 1, layers[i].getWeights()[1]);
+    }
+}
 async function train(model, data) {
     const metrics = ['loss', 'val_loss', 'acc', 'val_acc'];
     const container = {
@@ -207,7 +236,8 @@ async function run() {
 
     await showExamples(data);
 
-    const model = getModel();
+    // const model = getModel();
+    getModel();
     tfvis.show.modelSummary({name: 'Model Architecture'}, model);
   
     await train(model, data);
