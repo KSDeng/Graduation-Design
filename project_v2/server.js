@@ -3,6 +3,7 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var n_client = 0;
+var n_client_start = 0;		// number of clients at the moment of start
 const n_epoch = 10;
 var n_layer = 0;
 
@@ -52,6 +53,7 @@ io.on('connection', function(socket) {
 
 	socket.on('start-train-center', function(){
 		console.log('start training message from center, number of clients: ', n_client);
+		n_client_start = n_client;
 		// io.emit('server-message', 'message from server');
 		io.emit('start-train-client', n_epoch);
 		weights_array = new Array(n_epoch);
@@ -77,8 +79,9 @@ io.on('connection', function(socket) {
 			// console.log(`bias: ${weights.bias}`);
 			weights_array[cur_epoch][layer_index].push(weights);
 			// weights_array[cur_epoch].push(weights);
-			if(weights_array[cur_epoch][layer_index].length == n_client){
+			if(weights_array[cur_epoch][layer_index].length == n_client_start){
 				// update layer weights
+				console.log(`Update center model with layer ${layer_index} and epoch ${cur_epoch}.`);
 				io.emit('update-center-model', layer_index, weights_array[cur_epoch][layer_index]);
 				// cur_renew_count++;
 			}
