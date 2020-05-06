@@ -1,20 +1,3 @@
-// add remove function to array
-/*
-Array.prototype.indexOf = function(val){
-	for(var i = 0; i < this.length; ++i){
-		if(this[i] == val) return i;
-	}
-	return -1;
-};
-
-Array.prototype.remove = function(val){
-	var index = this.indexOf(val);
-	if (index > -1) {
-		this.splice(index, 1);
-	}
-};
-*/
-
 var express = require('express');
 var app = express();
 var http = require('http').Server(app);
@@ -22,10 +5,6 @@ var io = require('socket.io')(http);
 var n_client = 0;
 const n_epoch = 10;
 var n_layer = 0;
-// array to save client count of certain epoch
-// var sync_flag = null;
-// map to save model weights
-// var model_weights = new Map();
 
 // 2-d array to save client weights
 var weights_array = null;

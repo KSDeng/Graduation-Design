@@ -32,15 +32,6 @@ socket.on('start-train-client', function(n_epoch){
     run();
 });
 
-// heart beat every 3 seconds
-/*
-setInterval(function(){
-    socket.emit('client-heartbeat', clientId);
-}, 3000);
-*/
-
-// sendMessage('client message');
-
 function uuid() {
     var s = [];
 
@@ -206,15 +197,6 @@ async function sendModelWeights(model, epoch){
             socket.emit('update-model', i, weights, epoch);
         }
 
-        /*
-        if(kernel !== undefined && bias !== undefined){
-            const weights = [kernel, bias];
-            socket.emit('update-model', i, weights);
-        }
-        */
-
-        // socket.emit('update-model', i, 0, layers[i].getWeights()[0]);
-        // socket.emit('update-model', i, 1, layers[i].getWeights()[1]);
     }
 }
 async function train(model, data) {
@@ -295,20 +277,7 @@ async function run() {
   
     await train(model, data);
 
-    // line chart test
-    /*
-    const series1 = Array(100).fill(0)
-        .map(y => Math.random() * 100 - (Math.random() * 50))
-        .map((y, x) => ({x, y, }));
-
-    const series2 = Array(100).fill(0)
-        .map(y => Math.random() * 100 - (Math.random() * 150))
-        .map((y, x) => ({x, y, }));
-    const series = ['First', 'Second'];
-    const myData = {values: [series1, series2], series};
-    const surface = {name: 'Line chart', tab: 'Charts'};
-    tfvis.render.linechart(surface, myData);
-    */
+    // plot line chart
 
     var acc = accuracy_history.map((y,x) => ({x, y, }));
     var loss = loss_history.map((y,x) => ({x, y, }));

@@ -38,36 +38,6 @@ socket.on('update-center-model', function(layer_index, weights_array){
 	model.layers[layer_index].setWeights([kernel_avg, bias_avg]);
 	console.log(`Layer ${layer_index} updated.`);
 
-/*
-	// update model weights
-	// console.log(`Update layer ${layer_index}`);
-
-	// testing received data
-	var kernel = tf.tensor(weights.kernel);
-	var bias = tf.tensor(weights.bias);
-	var w_tensor = {kernel: kernel, bias: bias};
-	// console.log(`Kernel: ${kernel}`);
-	// console.log(`Bias: ${bias}`);
-
-	
-	if(!model_weights.has(layer_index)){
-		// console.log('New layer weights received...');
-		model_weights.set(layer_index, w_tensor);
-	}else{
-		// console.log('Averaging...');
-		// calculate average
-		var w = model_weights.get(layer_index);
-		var avg_kenel = tf.div(tf.add(w.kernel, w_tensor.kernel), 2);
-		var avg_bias = tf.div(tf.add(w.bias, w_tensor.bias), 2);
-		var res = {kernel: avg_kenel, bias: avg_bias};
-
-		model_weights.set(layer_index, res);
-	}
-	// update layer weights
-	const ww = model_weights.get(layer_index);
-	model.layers[layer_index].setWeights([ww.kernel, ww.bias]);
-*/
-
 });
 
 function getModel() {
