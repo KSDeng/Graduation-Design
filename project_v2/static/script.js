@@ -4,18 +4,59 @@ const LR = 0.1;                  // learning rate
 const TRAIN_SET_SIZE = 20000;     // training set size
 const TEST_SET_SIZE = 2000;       // testing set size
 const BATCH_SIZE = 512;
-const epochs = 10;
+var epochs = 10;
 const model = tf.sequential();
+const clientId = uuid();
+var accuracy_history = [];
+var loss_history = [];
 
 // Socket settings
 var socket = io();
 async function sendMessage(data){
     socket.emit('client-message', data);
 }
+
+socket.on('connect', function(){
+    console.log(`Client ${clientId} connected.`);
+    socket.emit('client-connected', clientId);      // send client id to server
+});
+
 socket.on('server-message', function(message){
     console.log('server message: ', message);
 });
+
+socket.on('start-train-client', function(n_epoch){
+    // console.log(`start train client with message ${message}`);
+    console.log('client start training, number of epoch: ', n_epoch);
+    epochs = n_epoch;
+    run();
+});
+
+// heart beat every 3 seconds
+/*
+setInterval(function(){
+    socket.emit('client-heartbeat', clientId);
+}, 3000);
+*/
+
 // sendMessage('client message');
+
+function uuid() {
+    var s = [];
+
+    var hexDigits = "0123456789abcdef";
+
+    for (var i = 0; i < 36; i++) {
+        s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+    }
+    s[14] = "4";  // bits 12-15 of the time_hi_and_version field to 0010
+    s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1);  // bits 6-7 of the clock_seq_hi_and_reserved to 01
+    // s[8] = s[13] = s[18] = s[23] = "-";
+
+    var uuid = s.join("");
+
+    return uuid;
+}
 
 // Visualize some examples
 async function showExamples(data) {
@@ -95,7 +136,6 @@ function getModel() {
         activation: 'softmax'
     }));
 
-  
     // Choose an optimizer, loss function and accuracy metric,
     // then compile and return the model
     const optimizer = tf.train.sgd(LR);     // use SGD optimizer
@@ -120,7 +160,16 @@ async function onEpochEndCallbacks(epoch, logs) {
     };
     tfvis.show.fitCallbacks(container, metrics);
 
-    console.log(`Epoch ${epoch} finished, loss: ${logs.loss}`);
+    console.log(`Epoch ${epoch} finished, loss: ${logs.loss}, val_acc: ${logs.val_acc}`);
+    accuracy_history.push(logs.val_acc);
+    loss_history.push(logs.loss);
+
+    //const series = ['val_acc'];
+    //const data = {values: [accuracy_history], series};
+    //const surface = {name: 'Line chart', tab: 'Charts'};
+    //tfvis.render.linechart(surface, data);
+
+    // showLineChart(logs);
 
     // Send update to center node
 
@@ -128,7 +177,7 @@ async function onEpochEndCallbacks(epoch, logs) {
     // const weights = model.layers[0].getWeights()[0];    // Kernel weights tensor
     // const data = weights.dataSync();                    // get data from tensor
 
-    sendModelWeights(model);
+    sendModelWeights(model, epoch);
     // sendMessage(data);
     // model.layers[0].getWeights()[0].print();         // print out kernel weights of first layer
     // const kernel = model.layers[0].getWeights()[0];  // kernel weights of first layer (Tensor)
@@ -136,8 +185,12 @@ async function onEpochEndCallbacks(epoch, logs) {
     
 }
 
+async function showLineChart(logs){
+
+}
+
 // send model weights to server
-async function sendModelWeights(model){
+async function sendModelWeights(model, epoch){
     const layers = model.layers;
     for(var i = 0; i < layers.length; ++i){
         const kernel = layers[i].getWeights()[0];
@@ -150,7 +203,7 @@ async function sendModelWeights(model){
                 kernel: kernel.arraySync(), 
                 bias: bias.arraySync()
             };
-            socket.emit('update-model', i, weights);
+            socket.emit('update-model', i, weights, epoch);
         }
 
         /*
@@ -242,11 +295,33 @@ async function run() {
   
     await train(model, data);
 
+    // line chart test
+    /*
+    const series1 = Array(100).fill(0)
+        .map(y => Math.random() * 100 - (Math.random() * 50))
+        .map((y, x) => ({x, y, }));
+
+    const series2 = Array(100).fill(0)
+        .map(y => Math.random() * 100 - (Math.random() * 150))
+        .map((y, x) => ({x, y, }));
+    const series = ['First', 'Second'];
+    const myData = {values: [series1, series2], series};
+    const surface = {name: 'Line chart', tab: 'Charts'};
+    tfvis.render.linechart(surface, myData);
+    */
+
+    var acc = accuracy_history.map((y,x) => ({x, y, }));
+    var loss = loss_history.map((y,x) => ({x, y, }));
+    const series = ['Accuracy', 'Loss'];
+    const plotData = {values: [acc, loss], series};
+    const surface = {name: 'Training log', tab: 'Charts'};
+    tfvis.render.linechart(surface, plotData);
+
     await showAccuracy(model, data);
     await showConfusion(model, data);
 }
 
 
-document.addEventListener('DOMContentLoaded', run);
+// document.addEventListener('DOMContentLoaded', run);
 
 

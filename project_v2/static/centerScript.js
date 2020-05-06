@@ -6,23 +6,41 @@ data.load(55000, 10000);
 const LR = 0.1;						// learning rate
 const model = tf.sequential();		// model as global variable
 
-var model_weights = new Map();
+// var model_weights = new Map();
 // Socket settings
 var socket = io();
 socket.on('server-message', function(message){
     console.log('server message: ', message);
 });
-async function sendMessage(data){
-    socket.emit('client-message', data);
-}
 
 // Update model weights
 // layer_index: which layer to update
-// type: kernel(0) or bias(1)
-// weights: weights to be written in
-socket.on('update-center-model', function(layer_index, weights){
+socket.on('update-center-model', function(layer_index, weights_array){
+	const length = weights_array.length;
+	console.log("weights_array length: ", length);
+
+	var kernel_sum = null, bias_sum = null;
+	for(var i = 0; i < length; ++i){
+		if(kernel_sum == null){
+			kernel_sum = tf.tensor(weights_array[i].kernel);
+		}else{
+			kernel_sum = tf.add(kernel_sum, tf.tensor(weights_array[i].kernel));
+		}
+
+		if(bias_sum == null){
+			bias_sum = tf.tensor(weights_array[i].bias);
+		}else{
+			bias_sum = tf.add(bias_sum, tf.tensor(weights_array[i].bias));
+		}
+	}
+	var kernel_avg = tf.div(kernel_sum, length);
+	var bias_avg = tf.div(bias_sum, length);
+	model.layers[layer_index].setWeights([kernel_avg, bias_avg]);
+	console.log(`Layer ${layer_index} updated.`);
+
+/*
 	// update model weights
-	console.log(`Update layer ${layer_index}`);
+	// console.log(`Update layer ${layer_index}`);
 
 	// testing received data
 	var kernel = tf.tensor(weights.kernel);
@@ -48,6 +66,7 @@ socket.on('update-center-model', function(layer_index, weights){
 	// update layer weights
 	const ww = model_weights.get(layer_index);
 	model.layers[layer_index].setWeights([ww.kernel, ww.bias]);
+*/
 
 });
 
@@ -113,6 +132,7 @@ function getModel() {
     // set model length to server
     // socket.emit('set-model-size', model.layers.length);
     // return model;
+    socket.emit('set-model-layer-length', model.layers.length);
 }
 const classNames = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
 
@@ -138,17 +158,17 @@ async function showAccuracy(model, data) {
     labels.dispose();
 }
 
-// Form submit action
-$('form').submit(function(e){
-	e.preventDefault();
-	console.log('Form submitted.');
-
-	showAccuracy(model, data);
-	// socket.emit('evaluate-model');
-	return false;
-});
-
 // Get model after DOMContent loaded
 document.addEventListener('DOMContentLoaded', getModel);
 
+document.getElementById('StartTraining').addEventListener("click", function(){
+	console.log('Start training');
+	// socket.emit('start-train-client');
+	socket.emit('start-train-center');
+});
+
+document.getElementById('EvaluateModel').addEventListener("click", function(){
+	console.log('Evaluate model');
+	showAccuracy(model, data);
+});
 
